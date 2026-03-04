@@ -1,0 +1,26 @@
+# OS / tooling
+.DS_Store
+Thumbs.db
+
+# IntelliJ / WebStorm
+.idea/
+*.iml
+out/
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Java
+target/
+*.log
+
+# Env files
+.env
+backend/.env
+frontend/.env
+
