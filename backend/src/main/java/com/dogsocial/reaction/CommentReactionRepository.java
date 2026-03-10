@@ -12,6 +12,9 @@ public interface CommentReactionRepository extends JpaRepository<CommentReaction
   Optional<CommentReaction> findByCommentIdAndUserId(Long commentId, Long userId);
   List<CommentReaction> findByCommentIdInAndUserId(Collection<Long> commentIds, Long userId);
 
+  @Query("select r.comment.id, r.type from CommentReaction r where r.comment.id in :commentIds and r.user.id = :userId")
+  List<Object[]> findCommentIdAndTypeByCommentIdInAndUserId(@Param("commentIds") Collection<Long> commentIds, @Param("userId") Long userId);
+
   void deleteByCommentIdAndUserId(Long commentId, Long userId);
 
   @Query("""

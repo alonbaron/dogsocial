@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, getApiErrorMessage } from '../lib/client'
 import { useAuth } from '../lib/auth'
+import Avatar from '../components/Avatar.jsx'
 
 function List({ title, endpoint }) {
   const [data, setData] = useState(null)
@@ -70,10 +71,11 @@ function List({ title, endpoint }) {
           <Link
             key={u.id}
             to={`/users/${u.id}`}
-            className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm shadow-sm ring-1 ring-slate-100 hover:bg-slate-50"
+            className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm shadow-sm ring-1 ring-slate-100 hover:bg-slate-50"
           >
+            <Avatar userId={u.id} email={u.email} size="sm" />
             <span className="font-medium text-slate-900">{u.email}</span>
-            <span className="text-[11px] text-slate-500">ID {u.id}</span>
+            <span className="ml-auto text-[11px] text-slate-500">ID {u.id}</span>
           </Link>
         ))}
 

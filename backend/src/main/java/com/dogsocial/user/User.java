@@ -37,5 +37,8 @@ public class User {
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
+
+  @Column(name = "avatar_path", length = 255)
+  private String avatarPath;
 }
 

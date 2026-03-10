@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import Avatar from './Avatar.jsx'
 
 function NavBar() {
   const { user, logout } = useAuth()
@@ -17,7 +18,14 @@ function NavBar() {
           <NavItem to="/feed">Feed</NavItem>
           <NavItem to="/browse">Browse</NavItem>
           <NavItem to="/friends">Friends</NavItem>
-          <NavItem to={`/users/${user.id}`}>Profile</NavItem>
+          <Link
+            to={`/users/${user.id}`}
+            className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-slate-100"
+            title="Profile"
+          >
+            <Avatar userId={user.id} email={user.email} size="sm" />
+            <span className="hidden text-xs font-medium text-slate-700 sm:inline">Profile</span>
+          </Link>
           <NavItem to="/playdates">Playdates</NavItem>
           <button
             type="button"

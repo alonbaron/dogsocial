@@ -3,7 +3,7 @@ import pawpalsLogo from '../assets/pawpals-logo.png'
 
 function Logo() {
   return (
-    <Link to="/feed" className="flex items-center gap-2 py-1">
+    <Link to="/" className="flex items-center gap-2 py-1">
       <img
         src={pawpalsLogo}
         alt="PawPals"

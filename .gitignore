@@ -18,6 +18,8 @@ dist/
 # Java
 target/
 *.log
+uploads/
+backend/uploads/
 
 # Env files
 .env

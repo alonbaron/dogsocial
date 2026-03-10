@@ -10,8 +10,10 @@ import com.dogsocial.user.dto.UserDtos;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class DogService {
   private final DogRepository dogRepository;
   private final UserRepository userRepository;
@@ -21,6 +23,7 @@ public class DogService {
     this.userRepository = userRepository;
   }
 
+  @Transactional(readOnly = false)
   public DogDtos.DogResponse create(DogDtos.CreateDogRequest req) {
     Long me = SecurityUtils.requireUserId();
     User owner = userRepository.findById(me).orElseThrow(() -> new NotFoundException("User not found"));
@@ -40,6 +43,7 @@ public class DogService {
     return toDto(dog);
   }
 
+  @Transactional(readOnly = false)
   public DogDtos.DogResponse update(Long dogId, DogDtos.UpdateDogRequest req) {
     Long me = SecurityUtils.requireUserId();
     Dog dog = dogRepository.findById(dogId).orElseThrow(() -> new NotFoundException("Dog not found"));
@@ -53,6 +57,7 @@ public class DogService {
     return toDto(dog);
   }
 
+  @Transactional(readOnly = false)
   public void delete(Long dogId) {
     Long me = SecurityUtils.requireUserId();
     Dog dog = dogRepository.findById(dogId).orElseThrow(() -> new NotFoundException("Dog not found"));

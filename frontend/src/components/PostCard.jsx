@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Avatar from './Avatar.jsx'
 
 function ReactionButton({ active, type, count, onClick }) {
   const base =
@@ -27,6 +28,7 @@ function PostCard({ post, onToggleReaction }) {
     <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md">
       <header className="mb-2 flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-2">
+          <Avatar userId={post.author.id} email={post.author.email} size="sm" />
           <span className="font-medium text-slate-800">
             <Link to={`/users/${post.author.id}`}>{post.author.email}</Link>
           </span>

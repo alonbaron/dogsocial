@@ -25,6 +25,7 @@ public class PlaydateService {
     this.userRepository = userRepository;
   }
 
+  @Transactional(readOnly = false)
   public PlaydateDtos.PlaydateResponse create(PlaydateDtos.CreatePlaydateRequest req) {
     Long me = SecurityUtils.requireUserId();
     if (me.equals(req.getRecipientId())) {
@@ -48,6 +49,7 @@ public class PlaydateService {
     return toDto(p, me);
   }
 
+  @Transactional(readOnly = false)
   public PlaydateDtos.PlaydateResponse updateStatus(Long playdateId, PlaydateDtos.UpdateStatusRequest req) {
     Long me = SecurityUtils.requireUserId();
     Playdate p = playdateRepository.findById(playdateId).orElseThrow(() -> new NotFoundException("Playdate not found"));

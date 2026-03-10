@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -139,8 +138,12 @@ public class CommentService {
   }
 
   private Map<Long, ReactionType> loadMyReactions(Collection<Long> commentIds, Long me) {
-    return commentReactionRepository.findByCommentIdInAndUserId(commentIds, me).stream()
-        .collect(Collectors.toMap(r -> r.getComment().getId(), CommentReaction::getType, (a, b) -> a));
+    if (commentIds.isEmpty()) return Map.of();
+    Map<Long, ReactionType> map = new HashMap<>();
+    for (Object[] row : commentReactionRepository.findCommentIdAndTypeByCommentIdInAndUserId(commentIds, me)) {
+      map.put((Long) row[0], (ReactionType) row[1]);
+    }
+    return map;
   }
 
   private CommentDtos.CommentResponse toDto(Comment c, Map<Long, Long> likes, Map<Long, Long> dislikes, ReactionType my) {

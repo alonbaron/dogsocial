@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getApiErrorMessage } from '../lib/client'
+import Avatar from '../components/Avatar.jsx'
 
 function PlaydatesList({ title, endpoint }) {
   const [data, setData] = useState(null)
@@ -45,20 +46,27 @@ function PlaydatesList({ title, endpoint }) {
             key={pd.id}
             className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-xs text-slate-700 shadow-sm ring-1 ring-slate-100"
           >
-            <div>
-              <p className="font-medium">
-                {pd.isRequester ? 'You' : pd.requester.email} ↔{' '}
-                {pd.isRequester ? pd.recipient.email : 'You'}
-              </p>
-              <p className="text-[11px] text-slate-500">
-                {new Date(pd.scheduledAt).toLocaleString()} ·{' '}
-                <span className="uppercase tracking-wide text-pink-600">
-                  {pd.status}
-                </span>
-              </p>
-              {pd.note && (
-                <p className="mt-1 text-[11px] text-slate-600">{pd.note}</p>
-              )}
+            <div className="flex items-center gap-3">
+              <Avatar
+                userId={pd.isRequester ? pd.recipient.id : pd.requester.id}
+                email={pd.isRequester ? pd.recipient.email : pd.requester.email}
+                size="sm"
+              />
+              <div>
+                <p className="font-medium">
+                  {pd.isRequester ? 'You' : pd.requester.email} ↔{' '}
+                  {pd.isRequester ? pd.recipient.email : 'You'}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {new Date(pd.scheduledAt).toLocaleString()} ·{' '}
+                  <span className="uppercase tracking-wide text-pink-600">
+                    {pd.status}
+                  </span>
+                </p>
+                {pd.note && (
+                  <p className="mt-1 text-[11px] text-slate-600">{pd.note}</p>
+                )}
+              </div>
             </div>
           </div>
         ))}

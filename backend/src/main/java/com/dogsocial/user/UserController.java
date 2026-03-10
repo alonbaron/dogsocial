@@ -4,10 +4,14 @@ import com.dogsocial.follow.FollowRepository;
 import com.dogsocial.exception.NotFoundException;
 import com.dogsocial.security.SecurityUtils;
 import com.dogsocial.user.dto.UserDtos;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -17,10 +21,12 @@ import java.util.Set;
 public class UserController {
   private final UserRepository userRepository;
   private final FollowRepository followRepository;
+  private final AvatarService avatarService;
 
-  public UserController(UserRepository userRepository, FollowRepository followRepository) {
+  public UserController(UserRepository userRepository, FollowRepository followRepository, AvatarService avatarService) {
     this.userRepository = userRepository;
     this.followRepository = followRepository;
+    this.avatarService = avatarService;
   }
 
   @GetMapping
@@ -66,6 +72,26 @@ public class UserController {
         .isMe(isMe)
         .isFollowing(isFollowing)
         .build();
+  }
+
+  @PostMapping("/me/avatar")
+  public void uploadAvatar(@RequestParam("file") MultipartFile file) {
+    avatarService.uploadAvatar(file);
+  }
+
+  @GetMapping("/{userId}/avatar")
+  public ResponseEntity<Resource> getAvatar(@PathVariable Long userId) {
+    Resource resource = avatarService.getAvatar(userId);
+    String path = resource.getFilename();
+    String contentType = "image/jpeg";
+    if (path != null) {
+      if (path.endsWith(".png")) contentType = "image/png";
+      else if (path.endsWith(".gif")) contentType = "image/gif";
+      else if (path.endsWith(".webp")) contentType = "image/webp";
+    }
+    return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(contentType))
+        .body(resource);
   }
 }
 
