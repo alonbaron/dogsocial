@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,6 +48,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<ApiError> handleBadRequest(BadRequestException ex, HttpServletRequest req) {
     return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiError> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+    return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), req, null);
   }
 
   @ExceptionHandler(Exception.class)
