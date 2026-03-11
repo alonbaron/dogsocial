@@ -3,6 +3,7 @@ package com.dogsocial.security;
 import com.dogsocial.config.AppProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -36,6 +37,8 @@ public class SecurityConfig {
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(eh -> eh.authenticationEntryPoint(entryPoint))
         .authorizeHttpRequests(auth -> auth
+            // Allow all CORS preflight requests through before security checks
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/health/**")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/users/*/avatar", "GET")).permitAll()
