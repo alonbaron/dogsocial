@@ -12,7 +12,7 @@ const FEATURES = [
 
 function LandingPage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-16 py-4">
+    <div className="mx-auto max-w-5xl space-y-16 px-5 sm:px-6 lg:px-8 py-4">
       {/* Hero */}
       <div className="grid items-center gap-10 md:grid-cols-2">
         <div>
