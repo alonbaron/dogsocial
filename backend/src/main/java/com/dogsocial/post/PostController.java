@@ -4,7 +4,6 @@ import com.dogsocial.api.PageResponse;
 import com.dogsocial.post.dto.PostDtos;
 import com.dogsocial.reaction.dto.ReactionDtos;
 import jakarta.validation.Valid;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -86,10 +85,10 @@ public class PostController {
   }
 
   @GetMapping("/api/posts/{postId}/image")
-  public ResponseEntity<Resource> getImage(@PathVariable Long postId) {
+  public ResponseEntity<byte[]> getImage(@PathVariable Long postId) {
     PostService.PostImageResult result = postService.getImage(postId);
     return ResponseEntity.ok()
         .contentType(MediaType.parseMediaType(result.contentType()))
-        .body(result.resource());
+        .body(result.data());
   }
 }

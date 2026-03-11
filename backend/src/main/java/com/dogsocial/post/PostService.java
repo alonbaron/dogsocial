@@ -1,12 +1,13 @@
 package com.dogsocial.post;
 
-import com.dogsocial.config.AppProperties;
 import com.dogsocial.dog.Dog;
 import com.dogsocial.dog.DogRepository;
 import com.dogsocial.exception.BadRequestException;
 import com.dogsocial.exception.ForbiddenException;
 import com.dogsocial.exception.NotFoundException;
 import com.dogsocial.follow.FollowRepository;
+import com.dogsocial.image.ImageStoreService;
+import com.dogsocial.image.StoredImage;
 import com.dogsocial.post.dto.PostDtos;
 import com.dogsocial.reaction.PostReaction;
 import com.dogsocial.reaction.PostReactionRepository;
@@ -16,33 +17,24 @@ import com.dogsocial.security.SecurityUtils;
 import com.dogsocial.user.User;
 import com.dogsocial.user.UserRepository;
 import com.dogsocial.user.dto.UserDtos;
-import org.springframework.core.io.PathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 public class PostService {
-  private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
-  private static final long MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
-
   private final PostRepository postRepository;
   private final UserRepository userRepository;
   private final DogRepository dogRepository;
   private final FollowRepository followRepository;
   private final PostReactionRepository postReactionRepository;
-  private final Path uploadRoot;
+  private final ImageStoreService imageStore;
 
   public PostService(
       PostRepository postRepository,
@@ -50,14 +42,14 @@ public class PostService {
       DogRepository dogRepository,
       FollowRepository followRepository,
       PostReactionRepository postReactionRepository,
-      AppProperties appProperties
+      ImageStoreService imageStore
   ) {
     this.postRepository = postRepository;
     this.userRepository = userRepository;
     this.dogRepository = dogRepository;
     this.followRepository = followRepository;
     this.postReactionRepository = postReactionRepository;
-    this.uploadRoot = Paths.get(appProperties.getUpload().getDir()).toAbsolutePath().normalize();
+    this.imageStore = imageStore;
   }
 
   public Page<PostDtos.PostResponse> feed(Pageable pageable) {
@@ -119,8 +111,9 @@ public class PostService {
     post = postRepository.save(post);
 
     if (image != null && !image.isEmpty()) {
-      String imagePath = savePostImage(post.getId(), image);
-      post.setImagePath(imagePath);
+      imageStore.validate(image);
+      Long imageId = imageStore.save(image);
+      post.setImagePath(String.valueOf(imageId));
       post = postRepository.save(post);
     }
 
@@ -149,7 +142,7 @@ public class PostService {
       throw new ForbiddenException("Only the author can delete this post");
     }
     if (post.getImagePath() != null) {
-      deletePostImage(post.getImagePath());
+      try { imageStore.delete(Long.parseLong(post.getImagePath())); } catch (Exception ignored) {}
     }
     postRepository.delete(post);
   }
@@ -179,47 +172,8 @@ public class PostService {
     if (post.getImagePath() == null || post.getImagePath().isBlank()) {
       throw new NotFoundException("Post has no image");
     }
-    Path path = uploadRoot.resolve(post.getImagePath()).normalize();
-    if (!path.startsWith(uploadRoot) || !Files.isRegularFile(path)) {
-      throw new NotFoundException("Image file not found");
-    }
-    String contentType = "image/jpeg";
-    String name = path.getFileName().toString();
-    if (name.endsWith(".png")) contentType = "image/png";
-    else if (name.endsWith(".gif")) contentType = "image/gif";
-    else if (name.endsWith(".webp")) contentType = "image/webp";
-    return new PostImageResult(new PathResource(path), contentType);
-  }
-
-  private String savePostImage(Long postId, MultipartFile file) {
-    String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
-      throw new BadRequestException("Invalid image type. Use JPEG, PNG, GIF, or WebP.");
-    }
-    if (file.getSize() > MAX_IMAGE_BYTES) {
-      throw new BadRequestException("Image too large. Maximum size is 5MB.");
-    }
-    String ext = contentType.split("/")[1];
-    if ("jpeg".equals(ext)) ext = "jpg";
-    String filename = "posts/" + postId + "_" + UUID.randomUUID().toString().replace("-", "") + "." + ext;
-    Path target = uploadRoot.resolve(filename);
-    try {
-      Files.createDirectories(target.getParent());
-      file.transferTo(target.toFile());
-    } catch (IOException e) {
-      throw new BadRequestException("Failed to save image: " + e.getMessage());
-    }
-    return filename;
-  }
-
-  private void deletePostImage(String imagePath) {
-    try {
-      Path path = uploadRoot.resolve(imagePath).normalize();
-      if (path.startsWith(uploadRoot)) {
-        Files.deleteIfExists(path);
-      }
-    } catch (IOException ignored) {
-    }
+    StoredImage img = imageStore.get(Long.parseLong(post.getImagePath()));
+    return new PostImageResult(img.getData(), img.getContentType());
   }
 
   private Page<PostDtos.PostResponse> hydrate(Page<Post> page, Long me) {
@@ -299,5 +253,5 @@ public class PostService {
 
   private record ReactionCounts(Map<Long, Long> likes, Map<Long, Long> dislikes) {}
 
-  public record PostImageResult(Resource resource, String contentType) {}
+  public record PostImageResult(byte[] data, String contentType) {}
 }

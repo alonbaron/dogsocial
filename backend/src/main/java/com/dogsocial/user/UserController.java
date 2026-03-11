@@ -6,7 +6,6 @@ import com.dogsocial.exception.NotFoundException;
 import com.dogsocial.security.SecurityUtils;
 import com.dogsocial.user.dto.UserDtos;
 import jakarta.validation.Valid;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -99,18 +98,11 @@ public class UserController {
   }
 
   @GetMapping("/{userId}/avatar")
-  public ResponseEntity<Resource> getAvatar(@PathVariable Long userId) {
-    Resource resource = avatarService.getAvatar(userId);
-    String path = resource.getFilename();
-    String contentType = "image/jpeg";
-    if (path != null) {
-      if (path.endsWith(".png")) contentType = "image/png";
-      else if (path.endsWith(".gif")) contentType = "image/gif";
-      else if (path.endsWith(".webp")) contentType = "image/webp";
-    }
+  public ResponseEntity<byte[]> getAvatar(@PathVariable Long userId) {
+    AvatarService.ImageResult result = avatarService.getAvatar(userId);
     return ResponseEntity.ok()
-        .contentType(MediaType.parseMediaType(contentType))
-        .body(resource);
+        .contentType(MediaType.parseMediaType(result.contentType()))
+        .body(result.data());
   }
 
   private UserDtos.UserProfile buildProfile(User user, Long me) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiBaseUrl, getApiErrorMessage } from '../lib/client'
 import { useAuth } from '../lib/auth'
@@ -17,12 +17,126 @@ function relativeTime(iso) {
   return new Date(iso).toLocaleDateString()
 }
 
+function CommentsSection({ postId }) {
+  const { user } = useAuth()
+  const [comments, setComments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [newComment, setNewComment] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editContent, setEditContent] = useState('')
+  const loaded = useRef(false)
+
+  useEffect(() => {
+    if (loaded.current) return
+    loaded.current = true
+    async function load() {
+      try {
+        const res = await api.get(`/posts/${postId}/comments`, { params: { size: 50 } })
+        setComments(res.data.items ?? [])
+      } catch { /* ignore */ }
+      finally { setLoading(false) }
+    }
+    load()
+  }, [postId])
+
+  const handlePost = async (e) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+    setPosting(true)
+    try {
+      const res = await api.post(`/posts/${postId}/comments`, { content: newComment.trim() })
+      setComments((prev) => [...prev, res.data])
+      setNewComment('')
+    } catch { /* ignore */ }
+    finally { setPosting(false) }
+  }
+
+  const handleDelete = async (commentId) => {
+    try {
+      await api.delete(`/comments/${commentId}`)
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+    } catch { /* ignore */ }
+  }
+
+  const handleEditSave = async (commentId) => {
+    if (!editContent.trim()) return
+    try {
+      const res = await api.put(`/comments/${commentId}`, { content: editContent.trim() })
+      setComments((prev) => prev.map((c) => (c.id === commentId ? res.data : c)))
+      setEditingId(null)
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="border-t border-slate-100 px-4 py-3 space-y-3">
+      {loading && <p className="text-xs text-slate-400 animate-pulse">Loading comments...</p>}
+
+      {!loading && comments.length === 0 && (
+        <p className="text-xs text-slate-400 text-center py-1">No comments yet. Be the first!</p>
+      )}
+
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {comments.map((c) => {
+          const isOwner = user && user.id === c.author.id
+          const label = c.author.username ? `@${c.author.username}` : `User #${c.author.id}`
+          return (
+            <div key={c.id} className="flex gap-2 group/comment">
+              <Avatar userId={c.author.id} username={c.author.username} size="xs" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <Link to={`/users/${c.author.id}`} className="text-xs font-semibold text-slate-700 hover:text-pink-600 transition">{label}</Link>
+                  <span className="text-[10px] text-slate-400">{relativeTime(c.createdAt)}</span>
+                </div>
+                {editingId === c.id ? (
+                  <div className="mt-1 flex gap-1.5">
+                    <input
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="input text-xs py-1 px-2"
+                      maxLength={300}
+                    />
+                    <button type="button" onClick={() => handleEditSave(c.id)} className="btn btn-primary btn-sm text-[10px]">Save</button>
+                    <button type="button" onClick={() => setEditingId(null)} className="btn btn-secondary btn-sm text-[10px]">Cancel</button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-600 leading-relaxed">{c.content}</p>
+                )}
+                {isOwner && editingId !== c.id && (
+                  <div className="flex gap-2 mt-0.5 opacity-0 group-hover/comment:opacity-100 transition-opacity">
+                    <button type="button" onClick={() => { setEditingId(c.id); setEditContent(c.content) }} className="text-[10px] text-slate-400 hover:text-slate-600">Edit</button>
+                    <button type="button" onClick={() => handleDelete(c.id)} className="text-[10px] text-slate-400 hover:text-red-600">Delete</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <form onSubmit={handlePost} className="flex gap-2">
+        <input
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Write a comment..."
+          maxLength={300}
+          className="input text-xs py-2 px-3 flex-1"
+        />
+        <button type="submit" disabled={posting || !newComment.trim()} className="btn btn-primary btn-sm shrink-0">
+          {posting ? '...' : 'Post'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
   const { user } = useAuth()
   const [editing, setEditing] = useState(false)
   const [editCaption, setEditCaption] = useState(post.caption)
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [showComments, setShowComments] = useState(false)
 
   const isOwner = user && user.id === post.author.id
   const my = post.myReaction || 'NONE'
@@ -161,7 +275,7 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
         </div>
       )}
 
-      {/* Reactions */}
+      {/* Reactions + comment toggle */}
       <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-50">
         {['LIKE', 'DISLIKE'].map((type) => {
           const active = my === type
@@ -182,7 +296,18 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
             </button>
           )
         })}
+        <button
+          type="button"
+          onClick={() => setShowComments((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all duration-150 active:scale-95 ml-auto"
+        >
+          <span>💬</span>
+          <span>{showComments ? 'Hide' : 'Comments'}</span>
+        </button>
       </div>
+
+      {/* Comments section */}
+      {showComments && <CommentsSection postId={post.id} />}
     </article>
   )
 }

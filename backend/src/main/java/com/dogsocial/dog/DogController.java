@@ -2,7 +2,6 @@ package com.dogsocial.dog;
 
 import com.dogsocial.dog.dto.DogDtos;
 import jakarta.validation.Valid;
-import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,10 +45,10 @@ public class DogController {
   }
 
   @GetMapping("/{dogId}/photo")
-  public ResponseEntity<Resource> getPhoto(@PathVariable Long dogId) {
+  public ResponseEntity<byte[]> getPhoto(@PathVariable Long dogId) {
     DogService.DogPhotoResult result = dogService.getPhoto(dogId);
     return ResponseEntity.ok()
         .contentType(MediaType.parseMediaType(result.contentType()))
-        .body(result.resource());
+        .body(result.data());
   }
 }
