@@ -8,6 +8,7 @@ public class PostDtos {
   @Data
   public static class UpdatePostRequest {
     private String caption;
+    private boolean removeImage;
   }
 
   @Data

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, apiBaseUrl, getApiErrorMessage } from '../lib/client'
 import { useAuth } from '../lib/auth'
 import Avatar from './Avatar.jsx'
+import ImageCropModal from './ImageCropModal.jsx'
 
 function relativeTime(iso) {
   if (!iso) return ''
@@ -137,6 +138,11 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [showComments, setShowComments] = useState(false)
+  const [editImage, setEditImage] = useState(null)
+  const [editImagePreview, setEditImagePreview] = useState(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const [cropSrc, setCropSrc] = useState(null)
+  const editFileRef = useRef(null)
 
   const isOwner = user && user.id === post.author.id
   const my = post.myReaction || 'NONE'
@@ -151,9 +157,21 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
     setSaving(true)
     setEditError('')
     try {
-      const res = await api.put(`/posts/${post.id}`, { caption: editCaption.trim() })
+      const formData = new FormData()
+      formData.append('caption', editCaption.trim())
+      if (editImage) {
+        formData.append('image', editImage, 'photo.jpg')
+      } else if (removeImage) {
+        formData.append('removeImage', 'true')
+      }
+      const res = await api.put(`/posts/${post.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       if (onUpdate) onUpdate(res.data)
       setEditing(false)
+      setEditImage(null)
+      setEditImagePreview(null)
+      setRemoveImage(false)
     } catch (err) {
       setEditError(getApiErrorMessage(err, 'Failed to save.'))
     } finally {
@@ -175,9 +193,37 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
     setEditing(false)
     setEditCaption(post.caption)
     setEditError('')
+    setEditImage(null)
+    setEditImagePreview(null)
+    setRemoveImage(false)
+    setCropSrc(null)
+  }
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCropSrc(URL.createObjectURL(file))
+    if (editFileRef.current) editFileRef.current.value = ''
+  }
+
+  const handleEditCropDone = (blob) => {
+    setEditImage(blob)
+    setEditImagePreview(URL.createObjectURL(blob))
+    setRemoveImage(false)
+    setCropSrc(null)
   }
 
   return (
+    <>
+    {cropSrc && (
+      <ImageCropModal
+        imageSrc={cropSrc}
+        aspect={4 / 3}
+        title="Crop post photo"
+        onCrop={handleEditCropDone}
+        onCancel={() => setCropSrc(null)}
+      />
+    )}
     <article className="card group overflow-hidden transition-shadow duration-200 hover:shadow-md">
       {/* Author header */}
       <div className="flex items-start justify-between gap-3 p-4 pb-2">
@@ -229,7 +275,7 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
       {/* Caption */}
       <div className="px-4 py-2">
         {editing ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <textarea
               value={editCaption}
               onChange={(e) => setEditCaption(e.target.value)}
@@ -237,6 +283,37 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
               rows={3}
               className="input resize-none text-sm"
             />
+
+            {/* Photo edit section */}
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Photo</p>
+              {editImagePreview ? (
+                <div className="relative overflow-hidden rounded-xl border border-slate-200">
+                  <img src={editImagePreview} alt="New photo" className="max-h-48 w-full object-cover" />
+                  <button type="button" onClick={() => { setEditImage(null); setEditImagePreview(null) }} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80">✕</button>
+                </div>
+              ) : imageUrl && !removeImage ? (
+                <div className="relative overflow-hidden rounded-xl border border-slate-200">
+                  <img src={imageUrl} alt="Current photo" className="max-h-48 w-full object-cover opacity-80" />
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/20">
+                    <label className="btn btn-sm bg-white/90 text-slate-700 hover:bg-white cursor-pointer shadow">
+                      Replace
+                      <input ref={editFileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleEditImageChange} />
+                    </label>
+                    <button type="button" onClick={() => setRemoveImage(true)} className="btn btn-sm bg-red-500/90 text-white hover:bg-red-600 shadow">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-3 text-xs text-slate-400 hover:border-pink-300 hover:bg-pink-50/30 transition">
+                  <span>📷</span>
+                  <span>{removeImage ? 'Photo removed — add new?' : 'Add a photo'}</span>
+                  <input ref={editFileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleEditImageChange} />
+                </label>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-400">{editCaption.length}/300</span>
               <div className="flex gap-2">
@@ -309,6 +386,7 @@ function PostCard({ post, onToggleReaction, onUpdate, onDelete }) {
       {/* Comments section */}
       {showComments && <CommentsSection postId={post.id} />}
     </article>
+    </>
   )
 }
 

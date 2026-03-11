@@ -121,7 +121,7 @@ public class PostService {
   }
 
   @Transactional(readOnly = false)
-  public PostDtos.PostResponse update(Long postId, PostDtos.UpdatePostRequest req) {
+  public PostDtos.PostResponse update(Long postId, PostDtos.UpdatePostRequest req, MultipartFile newImage) {
     Long me = SecurityUtils.requireUserId();
     Post post = postRepository.findById(postId).orElseThrow(() -> new NotFoundException("Post not found"));
     if (!post.getAuthor().getId().equals(me)) {
@@ -130,6 +130,20 @@ public class PostService {
     if (req.getCaption() != null && !req.getCaption().isBlank()) {
       post.setCaption(req.getCaption().trim());
     }
+
+    // Replace image
+    if (newImage != null && !newImage.isEmpty()) {
+      imageStore.validate(newImage);
+      if (post.getImagePath() != null) {
+        try { imageStore.delete(Long.parseLong(post.getImagePath())); } catch (Exception ignored) {}
+      }
+      Long imageId = imageStore.save(newImage);
+      post.setImagePath(String.valueOf(imageId));
+    } else if (req.isRemoveImage() && post.getImagePath() != null) {
+      try { imageStore.delete(Long.parseLong(post.getImagePath())); } catch (Exception ignored) {}
+      post.setImagePath(null);
+    }
+
     post = postRepository.save(post);
     return hydrateSingle(post, me);
   }

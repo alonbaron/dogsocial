@@ -51,9 +51,22 @@ public class PostController {
     return postService.get(postId);
   }
 
-  @PutMapping("/api/posts/{postId}")
-  public PostDtos.PostResponse update(@PathVariable Long postId, @Valid @RequestBody PostDtos.UpdatePostRequest req) {
-    return postService.update(postId, req);
+  @PutMapping(value = "/api/posts/{postId}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+  public PostDtos.PostResponse updateMultipart(
+      @PathVariable Long postId,
+      @RequestParam(value = "caption", required = false) String caption,
+      @RequestParam(value = "image", required = false) MultipartFile image,
+      @RequestParam(value = "removeImage", required = false, defaultValue = "false") boolean removeImage
+  ) {
+    PostDtos.UpdatePostRequest req = new PostDtos.UpdatePostRequest();
+    req.setCaption(caption);
+    req.setRemoveImage(removeImage);
+    return postService.update(postId, req, image);
+  }
+
+  @PutMapping(value = "/api/posts/{postId}", consumes = {MediaType.APPLICATION_JSON_VALUE})
+  public PostDtos.PostResponse updateJson(@PathVariable Long postId, @Valid @RequestBody PostDtos.UpdatePostRequest req) {
+    return postService.update(postId, req, null);
   }
 
   @DeleteMapping("/api/posts/{postId}")

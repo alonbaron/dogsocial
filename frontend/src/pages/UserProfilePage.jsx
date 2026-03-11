@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { api, apiBaseUrl, getApiErrorMessage } from '../lib/client'
 import { useAuth } from '../lib/auth'
 import PostCard from '../components/PostCard.jsx'
@@ -375,6 +375,107 @@ function AvatarUploadSection({ userId, avatarKey, onUploaded }) {
   )
 }
 
+// ─── Follow List Modal (Instagram-style) ──────────────────────────────────────
+
+function FollowListModal({ title, endpoint, meId, onClose }) {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [followState, setFollowState] = useState({})
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await api.get(endpoint, { params: { page, size: 20 } })
+        const items = res.data.items ?? []
+        if (!cancelled) {
+          setUsers((prev) => page === 0 ? items : [...prev, ...items])
+          setHasMore(res.data.hasNext ?? false)
+          const initial = {}
+          items.forEach((u) => { initial[u.id] = !!u.isFollowing })
+          setFollowState((prev) => ({ ...prev, ...initial }))
+        }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setLoading(false) }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [endpoint, page])
+
+  const toggleFollow = async (userId) => {
+    const currently = followState[userId]
+    setFollowState((prev) => ({ ...prev, [userId]: !currently }))
+    try {
+      if (currently) {
+        await api.delete(`/follows/${userId}`)
+      } else {
+        await api.post(`/follows/${userId}`)
+      }
+    } catch {
+      setFollowState((prev) => ({ ...prev, [userId]: currently }))
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl flex flex-col max-h-[70vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+          {users.map((u) => {
+            const isMe = u.id === meId
+            const label = u.username ? `@${u.username}` : `User #${u.id}`
+            const isFollowing = followState[u.id]
+            return (
+              <div key={u.id} className="flex items-center gap-3 px-4 py-2.5">
+                <Link to={`/users/${u.id}`} onClick={onClose} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition">
+                  <Avatar userId={u.id} username={u.username} size="sm" />
+                  <p className="truncate text-sm font-semibold text-slate-900">{label}</p>
+                </Link>
+                {!isMe && (
+                  <button
+                    type="button"
+                    onClick={() => toggleFollow(u.id)}
+                    className={`shrink-0 btn btn-sm ${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
+                  >
+                    {isFollowing ? '✓ Following' : 'Follow'}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+
+          {loading && (
+            <div className="px-4 py-4 text-center">
+              <p className="text-xs text-slate-400 animate-pulse">Loading...</p>
+            </div>
+          )}
+
+          {!loading && users.length === 0 && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-slate-400">No one here yet.</p>
+            </div>
+          )}
+        </div>
+
+        {hasMore && !loading && (
+          <div className="border-t border-slate-100 px-4 py-2.5 text-center">
+            <button type="button" onClick={() => setPage((p) => p + 1)} className="text-xs font-semibold text-pink-600 hover:text-pink-700">
+              Load more
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function UserProfilePage() {
@@ -388,6 +489,7 @@ function UserProfilePage() {
   const [following, setFollowing] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [followListModal, setFollowListModal] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -544,14 +646,22 @@ function UserProfilePage() {
 
           {/* Stats */}
           <div className="mt-4 flex gap-6 text-sm border-t border-slate-100 pt-4">
-            <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setFollowListModal({ title: 'Followers', endpoint: `/users/${profile.id}/followers` })}
+              className="text-center hover:opacity-70 transition"
+            >
               <p className="font-bold text-slate-900">{profile.followersCount}</p>
               <p className="text-xs text-slate-500">Followers</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button
+              type="button"
+              onClick={() => setFollowListModal({ title: 'Following', endpoint: `/users/${profile.id}/following` })}
+              className="text-center hover:opacity-70 transition"
+            >
               <p className="font-bold text-slate-900">{profile.followingCount}</p>
               <p className="text-xs text-slate-500">Following</p>
-            </div>
+            </button>
             <div className="text-center">
               <p className="font-bold text-slate-900">{posts?.totalItems ?? posts?.items?.length ?? '—'}</p>
               <p className="text-xs text-slate-500">Posts</p>
@@ -600,6 +710,16 @@ function UserProfilePage() {
           />
         ))}
       </div>
+
+      {/* Follow list modal */}
+      {followListModal && (
+        <FollowListModal
+          title={followListModal.title}
+          endpoint={followListModal.endpoint}
+          meId={me?.id}
+          onClose={() => setFollowListModal(null)}
+        />
+      )}
     </div>
   )
 }
