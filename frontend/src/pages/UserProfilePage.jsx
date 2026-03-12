@@ -102,7 +102,9 @@ function DogCard({ dog, isOwner, onEdit, onDelete, deleting }) {
   return (
     <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-100 shadow-sm">
       {photoUrl && (
-        <img src={photoUrl} alt={dog.name} className="w-full object-contain max-h-64 bg-slate-50" />
+        <div className="relative w-full" style={{ paddingBottom: '75%' }}>
+          <img src={photoUrl} alt={dog.name} className="absolute inset-0 w-full h-full object-cover" />
+        </div>
       )}
       <div className="flex items-start gap-3 px-4 py-3">
         {!photoUrl && (
