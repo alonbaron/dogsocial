@@ -11,37 +11,58 @@ async function createImage(url) {
   })
 }
 
-async function getCroppedBlob(imageSrc, pixelCrop) {
+function getRadianAngle(deg) {
+  return (deg * Math.PI) / 180
+}
+
+async function getCroppedBlob(imageSrc, pixelCrop, rotation = 0) {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
-  canvas.width = pixelCrop.width
-  canvas.height = pixelCrop.height
   const ctx = canvas.getContext('2d')
+
+  const maxSide = Math.max(image.width, image.height)
+  const safeArea = 2 * ((maxSide / 2) * Math.sqrt(2))
+
+  canvas.width = safeArea
+  canvas.height = safeArea
+
+  ctx.translate(safeArea / 2, safeArea / 2)
+  ctx.rotate(getRadianAngle(rotation))
+  ctx.translate(-safeArea / 2, -safeArea / 2)
+
   ctx.drawImage(
     image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    pixelCrop.width,
-    pixelCrop.height,
+    safeArea / 2 - image.width / 2,
+    safeArea / 2 - image.height / 2,
   )
+
+  const data = ctx.getImageData(0, 0, safeArea, safeArea)
+
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+
+  ctx.putImageData(
+    data,
+    Math.round(0 - safeArea / 2 + image.width / 2 - pixelCrop.x),
+    Math.round(0 - safeArea / 2 + image.height / 2 - pixelCrop.y),
+  )
+
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
 }
 
 /**
- * Modal crop UI.
- * @param {string}   imageSrc  - Object URL of the original image
- * @param {number}   aspect    - Crop aspect ratio (e.g. 1 for square, 4/3, 16/9). Pass undefined for free.
- * @param {string}   title     - Header label
- * @param {function} onCrop    - Called with the cropped Blob
- * @param {function} onCancel  - Called when user cancels
+ * Modal crop UI with rotation support.
+ * @param {string}   imageSrc       - Object URL of the original image
+ * @param {number}   aspect         - Crop aspect ratio (e.g. 1, 4/3). undefined = free.
+ * @param {string}   title          - Header label
+ * @param {boolean}  showRotation   - Show rotation slider (default true)
+ * @param {function} onCrop         - Called with the cropped Blob
+ * @param {function} onCancel       - Called when user cancels
  */
-function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCancel }) {
+function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', showRotation = true, onCrop, onCancel }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
   const [processing, setProcessing] = useState(false)
 
@@ -53,7 +74,7 @@ function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCanc
     if (!croppedAreaPixels) return
     setProcessing(true)
     try {
-      const blob = await getCroppedBlob(imageSrc, croppedAreaPixels)
+      const blob = await getCroppedBlob(imageSrc, croppedAreaPixels, rotation)
       onCrop(blob)
     } finally {
       setProcessing(false)
@@ -68,7 +89,7 @@ function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCanc
           <div>
             <h2 className="text-base font-bold text-slate-900">{title}</h2>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              Drag to reposition · scroll or use slider to zoom
+              Drag to reposition · zoom and rotate to adjust
             </p>
           </div>
           <button
@@ -86,9 +107,11 @@ function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCanc
             image={imageSrc}
             crop={crop}
             zoom={zoom}
+            rotation={rotation}
             aspect={aspect}
             onCropChange={setCrop}
             onZoomChange={setZoom}
+            onRotationChange={setRotation}
             onCropComplete={onCropComplete}
             style={{
               containerStyle: { borderRadius: 0 },
@@ -96,10 +119,11 @@ function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCanc
           />
         </div>
 
-        {/* Zoom slider + actions */}
-        <div className="flex items-center justify-between gap-4 border-t border-slate-100 px-5 py-4">
-          <div className="flex flex-1 items-center gap-3">
-            <span className="text-xs text-slate-400">🔍</span>
+        {/* Controls */}
+        <div className="space-y-3 border-t border-slate-100 px-5 py-4">
+          {/* Zoom */}
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0">Zoom</span>
             <input
               type="range"
               min={1}
@@ -109,9 +133,27 @@ function ImageCropModal({ imageSrc, aspect, title = 'Crop photo', onCrop, onCanc
               onChange={(e) => setZoom(Number(e.target.value))}
               className="w-full accent-pink-500"
             />
-            <span className="text-xs text-slate-400">🔎</span>
           </div>
-          <div className="flex shrink-0 gap-2">
+
+          {/* Rotation */}
+          {showRotation && (
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0">Rotate</span>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={rotation}
+                onChange={(e) => setRotation(Number(e.target.value))}
+                className="w-full accent-pink-500"
+              />
+              <span className="text-[11px] text-slate-400 w-10 text-right shrink-0">{rotation}°</span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onCancel} className="btn-secondary btn-sm">
               Cancel
             </button>

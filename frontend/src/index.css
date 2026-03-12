@@ -7,10 +7,31 @@
     height: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
   }
 
   body {
     @apply bg-slate-50 text-slate-900;
+    overflow-y: auto;
+    height: 100%;
+    width: 100%;
+    /* Prevent pull-to-refresh and overscroll bounce */
+    overscroll-behavior-y: contain;
+    /* iOS safe area support */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Prevent accidental zoom on double-tap (iOS) */
+  input, textarea, select, button {
+    touch-action: manipulation;
   }
 
   * {
