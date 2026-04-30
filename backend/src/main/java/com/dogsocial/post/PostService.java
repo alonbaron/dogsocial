@@ -8,7 +8,9 @@ import com.dogsocial.exception.NotFoundException;
 import com.dogsocial.follow.FollowRepository;
 import com.dogsocial.image.ImageStoreService;
 import com.dogsocial.image.StoredImage;
+import com.dogsocial.comment.CommentRepository;
 import com.dogsocial.post.dto.PostDtos;
+import com.dogsocial.reaction.CommentReactionRepository;
 import com.dogsocial.reaction.PostReaction;
 import com.dogsocial.reaction.PostReactionRepository;
 import com.dogsocial.reaction.ReactionType;
@@ -34,6 +36,8 @@ public class PostService {
   private final DogRepository dogRepository;
   private final FollowRepository followRepository;
   private final PostReactionRepository postReactionRepository;
+  private final CommentRepository commentRepository;
+  private final CommentReactionRepository commentReactionRepository;
   private final ImageStoreService imageStore;
 
   public PostService(
@@ -42,6 +46,8 @@ public class PostService {
       DogRepository dogRepository,
       FollowRepository followRepository,
       PostReactionRepository postReactionRepository,
+      CommentRepository commentRepository,
+      CommentReactionRepository commentReactionRepository,
       ImageStoreService imageStore
   ) {
     this.postRepository = postRepository;
@@ -49,6 +55,8 @@ public class PostService {
     this.dogRepository = dogRepository;
     this.followRepository = followRepository;
     this.postReactionRepository = postReactionRepository;
+    this.commentRepository = commentRepository;
+    this.commentReactionRepository = commentReactionRepository;
     this.imageStore = imageStore;
   }
 
@@ -158,6 +166,9 @@ public class PostService {
     if (post.getImagePath() != null) {
       try { imageStore.delete(Long.parseLong(post.getImagePath())); } catch (Exception ignored) {}
     }
+    commentReactionRepository.deleteByPostId(post.getId());
+    commentRepository.deleteByPostId(post.getId());
+    postReactionRepository.deleteByPostId(post.getId());
     postRepository.delete(post);
   }
 

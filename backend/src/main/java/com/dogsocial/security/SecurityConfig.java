@@ -39,7 +39,12 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             // Allow all CORS preflight requests through before security checks
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+            .requestMatchers(
+                "/api/auth/register",
+                "/api/auth/login",
+                "/api/auth/forgot-password",
+                "/api/auth/reset-password"
+            ).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/health/**")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/users/*/avatar", "GET")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/posts/*/image", "GET")).permitAll()

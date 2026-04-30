@@ -7,6 +7,8 @@ import { AuthProvider } from './lib/auth.js'
 import { ProtectedRoute, PublicOnly } from './components/RouteGuards.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import FeedPage from './pages/FeedPage.jsx'
 import UserProfilePage from './pages/UserProfilePage.jsx'
@@ -57,6 +59,22 @@ createRoot(document.getElementById('root')).render(
             element={
               <PublicOnly>
                 <RegisterPage />
+              </PublicOnly>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicOnly>
+                <ForgotPasswordPage />
+              </PublicOnly>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicOnly>
+                <ResetPasswordPage />
               </PublicOnly>
             }
           />

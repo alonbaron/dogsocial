@@ -26,6 +26,12 @@ app:
     allowedOrigins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,https://dogsocial.vercel.app}
   upload:
     dir: ${UPLOAD_DIR:uploads}
+  passwordReset:
+    frontendResetUrl: ${APP_PASSWORD_RESET_FRONTEND_URL:http://localhost:5173/reset-password}
+    tokenTtlMinutes: ${APP_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    emailCooldownMinutes: ${APP_PASSWORD_RESET_EMAIL_COOLDOWN_MINUTES:5}
+    ipHourlyLimit: ${APP_PASSWORD_RESET_IP_HOURLY_LIMIT:10}
+    fromEmail: ${APP_PASSWORD_RESET_FROM_EMAIL:no-reply@pawpals.local}
 
 logging:
   level:

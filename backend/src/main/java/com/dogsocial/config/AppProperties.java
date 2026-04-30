@@ -9,6 +9,7 @@ public class AppProperties {
   private Jwt jwt = new Jwt();
   private Cors cors = new Cors();
   private Upload upload = new Upload();
+  private PasswordReset passwordReset = new PasswordReset();
 
   @Data
   public static class Jwt {
@@ -24,6 +25,15 @@ public class AppProperties {
   @Data
   public static class Upload {
     private String dir = "uploads";
+  }
+
+  @Data
+  public static class PasswordReset {
+    private String frontendResetUrl = "http://localhost:5173/reset-password";
+    private long tokenTtlMinutes = 30;
+    private long emailCooldownMinutes = 5;
+    private int ipHourlyLimit = 10;
+    private String fromEmail = "no-reply@pawpals.local";
   }
 }
 

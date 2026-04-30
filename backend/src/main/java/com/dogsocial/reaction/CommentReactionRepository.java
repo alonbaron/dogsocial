@@ -1,6 +1,7 @@
 package com.dogsocial.reaction;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,6 +17,13 @@ public interface CommentReactionRepository extends JpaRepository<CommentReaction
   List<Object[]> findCommentIdAndTypeByCommentIdInAndUserId(@Param("commentIds") Collection<Long> commentIds, @Param("userId") Long userId);
 
   void deleteByCommentIdAndUserId(Long commentId, Long userId);
+
+  @Modifying
+  void deleteByCommentId(Long commentId);
+
+  @Modifying
+  @Query("delete from CommentReaction r where r.comment.post.id = :postId")
+  void deleteByPostId(@Param("postId") Long postId);
 
   @Query("""
       select r.comment.id, r.type, count(r)

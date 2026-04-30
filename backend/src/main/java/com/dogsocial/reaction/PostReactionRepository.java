@@ -1,6 +1,7 @@
 package com.dogsocial.reaction;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,6 +17,9 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, Long
   List<Object[]> findPostIdAndTypeByPostIdInAndUserId(@Param("postIds") Collection<Long> postIds, @Param("userId") Long userId);
 
   void deleteByPostIdAndUserId(Long postId, Long userId);
+
+  @Modifying
+  void deleteByPostId(Long postId);
 
   @Query("""
       select r.post.id, r.type, count(r)

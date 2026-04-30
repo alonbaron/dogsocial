@@ -37,6 +37,23 @@ public class AuthDtos {
   }
 
   @Data
+  public static class ForgotPasswordRequest {
+    @Email
+    @NotBlank
+    private String email;
+  }
+
+  @Data
+  public static class ResetPasswordRequest {
+    @NotBlank
+    private String token;
+
+    @NotBlank
+    @Size(min = 8, max = 72)
+    private String password;
+  }
+
+  @Data
   @Builder
   public static class AuthResponse {
     private String token;

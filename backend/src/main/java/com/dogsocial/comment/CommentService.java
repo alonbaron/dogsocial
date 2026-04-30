@@ -95,6 +95,7 @@ public class CommentService {
     if (!comment.getAuthor().getId().equals(me)) {
       throw new ForbiddenException("Only the author can delete this comment");
     }
+    commentReactionRepository.deleteByCommentId(comment.getId());
     commentRepository.delete(comment);
   }
 
