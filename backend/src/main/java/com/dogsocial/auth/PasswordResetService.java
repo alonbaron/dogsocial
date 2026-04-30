@@ -9,9 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
@@ -35,6 +37,7 @@ public class PasswordResetService {
   private final PasswordEncoder passwordEncoder;
   private final AppProperties properties;
   private final JavaMailSender mailSender;
+  private final RestClient emailjsClient;
   private final Map<String, ArrayDeque<Instant>> requestsByIp = new ConcurrentHashMap<>();
 
   public PasswordResetService(
@@ -49,6 +52,9 @@ public class PasswordResetService {
     this.passwordEncoder = passwordEncoder;
     this.properties = properties;
     this.mailSender = mailSenderProvider.getIfAvailable();
+    this.emailjsClient = RestClient.builder()
+        .baseUrl("https://api.emailjs.com/api/v1.0")
+        .build();
   }
 
   @Transactional(readOnly = false)
@@ -131,6 +137,11 @@ public class PasswordResetService {
   }
 
   private void sendResetEmail(String to, String resetLink) {
+    if (isEmailjsConfigured()) {
+      sendEmailjsResetEmail(to, resetLink);
+      return;
+    }
+
     if (mailSender == null) {
       log.warn("SMTP is not configured. Password reset link for {}: {}", to, resetLink);
       return;
@@ -149,6 +160,37 @@ public class PasswordResetService {
         This link expires soon. If you did not request this, you can ignore this email.
         """.formatted(resetLink));
     mailSender.send(message);
+  }
+
+  private void sendEmailjsResetEmail(String to, String resetLink) {
+    AppProperties.Emailjs emailjs = properties.getEmailjs();
+    Map<String, Object> body = Map.of(
+        "service_id", emailjs.getServiceId(),
+        "template_id", emailjs.getTemplateId(),
+        "user_id", emailjs.getPublicKey(),
+        "template_params", Map.of(
+            "to_email", to,
+            "link", resetLink
+        )
+    );
+
+    emailjsClient.post()
+        .uri("/email/send")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(body)
+        .retrieve()
+        .toBodilessEntity();
+  }
+
+  private boolean isEmailjsConfigured() {
+    AppProperties.Emailjs emailjs = properties.getEmailjs();
+    return hasText(emailjs.getServiceId())
+        && hasText(emailjs.getTemplateId())
+        && hasText(emailjs.getPublicKey());
+  }
+
+  private static boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 
   private static String generateToken() {

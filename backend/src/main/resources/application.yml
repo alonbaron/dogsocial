@@ -32,6 +32,10 @@ app:
     emailCooldownMinutes: ${APP_PASSWORD_RESET_EMAIL_COOLDOWN_MINUTES:5}
     ipHourlyLimit: ${APP_PASSWORD_RESET_IP_HOURLY_LIMIT:10}
     fromEmail: ${APP_PASSWORD_RESET_FROM_EMAIL:no-reply@pawpals.local}
+  emailjs:
+    serviceId: ${EMAILJS_SERVICE_ID:}
+    templateId: ${EMAILJS_TEMPLATE_ID:}
+    publicKey: ${EMAILJS_PUBLIC_KEY:}
 
 logging:
   level:
