@@ -26,3 +26,6 @@ backend/uploads/
 backend/.env
 frontend/.env
 
+
+.vercel
+.env*.local

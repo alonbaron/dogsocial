@@ -10,6 +10,7 @@ public class AppProperties {
   private Cors cors = new Cors();
   private Upload upload = new Upload();
   private PasswordReset passwordReset = new PasswordReset();
+  private Emailjs emailjs = new Emailjs();
 
   @Data
   public static class Jwt {
@@ -34,6 +35,13 @@ public class AppProperties {
     private long emailCooldownMinutes = 5;
     private int ipHourlyLimit = 10;
     private String fromEmail = "no-reply@pawpals.local";
+  }
+
+  @Data
+  public static class Emailjs {
+    private String serviceId;
+    private String templateId;
+    private String publicKey;
   }
 }
 
