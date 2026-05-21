@@ -51,7 +51,7 @@
 
 ## API conventions
 - All endpoints are prefixed with `/api`.
-- Protected endpoints require JWT, except `/api/auth/register` and `/api/auth/login`.
+- Public endpoints include register, login, password reset, health checks, and media reads. All other endpoints require JWT.
 - **Pagination**: standard Spring Data query params: `page` (0-based), `size`.
 - **Page response DTO**:
   - `items`, `page`, `size`, `totalItems`, `totalPages`, `hasNext`
@@ -131,4 +131,3 @@ Each comment includes:
   - count via aggregated queries (`COUNT` with `type`)
   - my reaction via `findBy...AndUserId`
   - results composed in service-layer DTO mapping.
-

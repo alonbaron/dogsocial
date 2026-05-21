@@ -26,6 +26,7 @@ backend/uploads/
 backend/.env
 frontend/.env
 
-
+# Local notes and deployment state
+ignore/
 .vercel
 .env*.local

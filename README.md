@@ -2,6 +2,9 @@
 
 Full-stack social network for dog owners.
 
+### Project note
+This is an educational portfolio project. It is licensed under the MIT License; see [LICENSE](LICENSE).
+
 ### Project structure
 - **backend**: Java 21, Spring Boot, JWT auth, MySQL, JPA.
 - **frontend**: Vite + React (JS), React Router, Axios, Tailwind CSS.
