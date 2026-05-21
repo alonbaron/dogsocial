@@ -124,15 +124,30 @@ public class PasswordResetService {
     String key = ipAddress == null || ipAddress.isBlank() ? "unknown" : ipAddress;
     Instant now = Instant.now();
     Instant cutoff = now.minus(Duration.ofHours(1));
-    ArrayDeque<Instant> attempts = requestsByIp.computeIfAbsent(key, ignored -> new ArrayDeque<>());
-    synchronized (attempts) {
-      while (!attempts.isEmpty() && attempts.peekFirst().isBefore(cutoff)) {
-        attempts.removeFirst();
-      }
-      if (attempts.size() >= properties.getPasswordReset().getIpHourlyLimit()) {
+    requestsByIp.compute(key, (ignored, attempts) -> {
+      ArrayDeque<Instant> currentAttempts = attempts == null ? new ArrayDeque<>() : attempts;
+      removeExpiredAttempts(currentAttempts, cutoff);
+      if (currentAttempts.size() >= properties.getPasswordReset().getIpHourlyLimit()) {
         throw new BadRequestException("Too many password reset requests. Please try again later.");
       }
-      attempts.addLast(now);
+      currentAttempts.addLast(now);
+      return currentAttempts;
+    });
+    pruneExpiredIpBuckets(cutoff);
+  }
+
+  private void pruneExpiredIpBuckets(Instant cutoff) {
+    for (String key : requestsByIp.keySet()) {
+      requestsByIp.computeIfPresent(key, (ignored, attempts) -> {
+        removeExpiredAttempts(attempts, cutoff);
+        return attempts.isEmpty() ? null : attempts;
+      });
+    }
+  }
+
+  private static void removeExpiredAttempts(ArrayDeque<Instant> attempts, Instant cutoff) {
+    while (!attempts.isEmpty() && attempts.peekFirst().isBefore(cutoff)) {
+      attempts.removeFirst();
     }
   }
 
