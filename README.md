@@ -26,6 +26,8 @@ This will:
 The backend exposes REST API under `/api`, e.g.:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `GET /api/auth/me`
 - `GET /api/feed`
 - `POST /api/posts`
@@ -58,7 +60,7 @@ The app will be available at `http://localhost:5173`.
 1. Visit `http://localhost:5173`.
 2. **Register** a new user.
 3. You’ll be redirected to the **Feed**:
-   - Create dogs (via API or future UI extensions).
+   - Add, edit, and delete dog profiles from your profile page.
    - Create posts (optionally associated with a dog).
    - React (like/dislike) on posts and comments.
 4. Use the **Playdates** page to:
@@ -69,7 +71,7 @@ The app will be available at `http://localhost:5173`.
 - Passwords are hashed with BCrypt.
 - JWT is returned from `/api/auth/login` and `/api/auth/register`.
 - The frontend stores JWT in `sessionStorage` and sends it as `Authorization: Bearer <token>`.
-- All endpoints except `/api/auth/register` and `/api/auth/login` require a valid JWT.
+- Public endpoints include register, login, password reset, health checks, and media reads. All other endpoints require a valid JWT.
 
 ### Is the database up? (Troubleshooting)
 
@@ -128,4 +130,3 @@ Test-NetConnection -ComputerName localhost -Port 3307
 - **401 Unauthorized:** You’re not logged in or the token is missing/expired. Log in again (or register); the app will store a new JWT.
 - **500 Internal Server Error:** Backend threw an exception. Check the **response body** for the `detail` field (exception type and message). Also run `docker-compose logs backend` (or your IDE console) and look at the stack trace to see which line failed.
 - **CORS / network errors in the browser:** Ensure the frontend is calling the same backend URL (e.g. `http://localhost:8080/api`) and that `APP_CORS_ALLOWED_ORIGINS` includes your frontend origin (e.g. `http://localhost:5173`).
-
