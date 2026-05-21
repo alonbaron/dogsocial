@@ -4,6 +4,7 @@ import com.dogsocial.exception.BadRequestException;
 import com.dogsocial.exception.ForbiddenException;
 import com.dogsocial.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -50,6 +52,12 @@ public class GlobalExceptionHandler {
     return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
   }
 
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex, HttpServletRequest req) {
+    log.warn("Data integrity violation at {}: {}", req.getRequestURI(), mostSpecificMessage(ex));
+    return build(HttpStatus.BAD_REQUEST, dataIntegrityMessage(ex), req, null);
+  }
+
   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
   public ResponseEntity<ApiError> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
     return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), req, null);
@@ -69,6 +77,25 @@ public class GlobalExceptionHandler {
         .fieldErrors(null)
         .build();
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+  }
+
+  private String dataIntegrityMessage(DataIntegrityViolationException ex) {
+    String message = mostSpecificMessage(ex).toLowerCase(Locale.ROOT);
+    if (message.contains("uk_users_email")) {
+      return "Email already registered";
+    }
+    if (message.contains("uk_users_username")) {
+      return "Username already taken";
+    }
+    if (message.contains("uk_follows_follower_followed")) {
+      return "Already following this user";
+    }
+    return "Request violates an existing constraint";
+  }
+
+  private static String mostSpecificMessage(DataIntegrityViolationException ex) {
+    String message = ex.getMostSpecificCause().getMessage();
+    return message != null ? message : "";
   }
 
   private ResponseEntity<ApiError> build(
@@ -96,4 +123,3 @@ public class GlobalExceptionHandler {
         .build();
   }
 }
-
