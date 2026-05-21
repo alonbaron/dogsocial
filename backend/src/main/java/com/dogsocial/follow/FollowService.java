@@ -11,6 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+
 @Service
 public class FollowService {
   private final FollowRepository followRepository;
@@ -55,16 +58,15 @@ public class FollowService {
   @Transactional(readOnly = true)
   public Page<UserDtos.UserSummary> getFollowers(Long userId, Pageable pageable) {
     Long me = SecurityUtils.requireUserId();
-    // For each follower, check whether the current viewer follows them back
-    return followRepository.findByFollowedId(userId, pageable)
-        .map(f -> {
-          long followerId = f.getFollower().getId();
-          boolean iFollowThem = followRepository.existsByFollowerIdAndFollowedId(me, followerId);
-          return UserDtos.UserSummary.builder()
-              .id(followerId)
-              .username(f.getFollower().getUsername())
-              .isFollowing(iFollowThem)
-              .build();
-        });
+    Page<Follow> page = followRepository.findByFollowedId(userId, pageable);
+    List<Long> followerIds = page.getContent().stream().map(f -> f.getFollower().getId()).toList();
+    Set<Long> iFollow = followerIds.isEmpty()
+        ? Set.of()
+        : followRepository.findFollowedIdsAmong(me, followerIds);
+    return page.map(f -> UserDtos.UserSummary.builder()
+        .id(f.getFollower().getId())
+        .username(f.getFollower().getUsername())
+        .isFollowing(iFollow.contains(f.getFollower().getId()))
+        .build());
   }
 }
