@@ -22,6 +22,11 @@ public class HealthController {
     this.userRepository = userRepository;
   }
 
+  @GetMapping
+  public ResponseEntity<Map<String, Object>> health() {
+    return ResponseEntity.ok(Map.of("status", "up"));
+  }
+
   @GetMapping("/db")
   public ResponseEntity<Map<String, Object>> db() {
     try {
